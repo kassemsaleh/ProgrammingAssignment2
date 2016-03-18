@@ -1,0 +1,155 @@
+---
+title: "cachematrix"
+author: "kassem saleh"
+date: "March 18, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+
+### This Rmd file contains two functions to illustrate the use of a cached object
+### to avoid recomuptation of the inverse of a matrix if the matrix did not change
+### the two functions are: makeCacheMatrix and cacheSolve
+
+
+
+### makeCacheMatrix creates a special matrix object that can cache its inverse
+### this function returns a list of functions as follows:
+###    setMatrix() to set the values inside the matrix
+###    getMatrix() to get the values stored inside the matrix
+###    getInverse() to get the values of the inverse of the matrix
+###    cacheInverse() to get the cached values of the inverse of the matrix
+
+```{r}
+makeCacheMatrix <- function(x = matrix()) {
+    
+    # initially, set cache to NULL since no inverse was computed first
+    cache <- NULL
+    
+    # store new values in matrix
+    setMatrix <- function(newMatrixValues) {
+      x <<- newMatrixValues
+      
+      # set cache to NULL since new values are stored in matrix
+      cache <<- NULL
+    }
+    
+    # returns the stored matrix
+    getMatrix <- function() {
+      x
+    }
+    
+    # returns the cached matrix
+    getInverse <- function() {
+      cache
+    }
+    
+    
+    # cache the given argument 
+    cacheInverse <- function(solve) {
+      cache <<- solve
+    }
+    
+    # return a list. Each named element of the list is a function
+    list(setMatrix = setMatrix, 
+         getMatrix = getMatrix, 
+         cacheInverse = cacheInverse, 
+         getInverse = getInverse)
+  }
+
+
+## cacheSolve computes the inverse of the special matrix object returned by makeCacheMatrix. 
+## if the inverse matrix has been computed previously and the matrix has not changed, then
+## this function retrieves the inverse from the cache
+## we assume that the matrix object is invertible
+
+cacheSolve <- function(x, ...) {
+
+    # get the inverse from cache in case it was computed before
+    inverse <- x$getInverse()
+    
+    # if previously cached return it from cache
+    if(!is.null(inverse)) {
+      message("getting cached data")
+      
+      return(inverse)
+    }
+    
+    # if did not return the cached value (i.e., null inverse, not computed before)
+    # Get the matrix, and compute its inverse and store it in cache
+    data <- x$getMatrix()
+    inverse <- solve(data)
+    x$cacheInverse(inverse)
+    
+    # return the inverse
+    inverse
+  }
+  
+### test if the caching works
+```
+
+
+### first make a 3x3 invertible matrix
+```{r}
+
+
+a <- makeCacheMatrix()
+
+
+a$setMatrix(matrix(c(7,2,1,0,3,-1,-3,4,-2), nrow = 3, ncol = 3) )
+```
+### show that matrix
+
+```{r}
+a$getMatrix()
+```
+
+
+### invert that matrix -- show a message if cache was used -- should not because first time
+```{r}
+cacheSolve(a)
+```
+
+
+### now invert again the same matrix  -- message should indicate cache was used
+```{r}
+cacheSolve(a)
+```
+
+### now use another matrix and show it
+```{r}
+a$setMatrix( matrix(c(7,0,-3,2,3,4,1,-1,-2), nrow = 3, ncol = 3) )
+
+a$getMatrix()
+```
+
+### solve again -- cache not used 
+```{r}
+cacheSolve(a)
+
+```
+### now try the same with 2x2 invertible matrix
+
+```{r}
+
+a <- makeCacheMatrix()
+
+a$setMatrix( matrix(c(1,5,10,25), nrow = 2, ncol = 2))
+
+a$getMatrix()
+
+cacheSolve(a)
+
+cacheSolve(a)
+
+a$setMatrix (matrix(c(1,5,10,20), nrow = 2, ncol = 2))
+
+cacheSolve(a)
+```
+
